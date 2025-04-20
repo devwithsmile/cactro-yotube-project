@@ -1,9 +1,9 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "YouTube Video API",
+    "title": "YouTube Companion Dashboard API",
     "version": "1.0.0",
-    "description": "API to fetch and filter YouTube video metadata and statistics for a specific hardcoded video."
+    "description": "API for YouTube Companion Dashboard that allows users to manage their YouTube videos, comments, and notes."
   },
   "servers": [
     {
@@ -11,12 +11,86 @@
     }
   ],
   "paths": {
-    "/video": {
+    "/auth/google": {
       "get": {
-        "summary": "Get metadata and statistics for a specific YouTube video (hardcoded)",
+        "summary": "Initiate Google OAuth login",
+        "description": "Redirects to Google OAuth consent screen",
+        "responses": {
+          "302": {
+            "description": "Redirects to Google"
+          }
+        }
+      }
+    },
+    "/auth/google/callback": {
+      "get": {
+        "summary": "Google OAuth callback",
+        "description": "Callback endpoint for Google OAuth",
+        "responses": {
+          "302": {
+            "description": "Redirects to frontend home page"
+          }
+        }
+      }
+    },
+    "/auth/user": {
+      "get": {
+        "summary": "Get current authenticated user",
+        "description": "Returns information about the authenticated user",
         "responses": {
           "200": {
-            "description": "Filtered video information for the hardcoded video",
+            "description": "User information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "email": { "type": "string" },
+                    "picture": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "get": {
+        "summary": "Logout user",
+        "description": "Logs out the currently authenticated user",
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during logout"
+          }
+        }
+      }
+    },
+    "/video": {
+      "get": {
+        "summary": "Get video details",
+        "description": "Get details for the hardcoded YouTube video",
+        "responses": {
+          "200": {
+            "description": "Video details",
             "content": {
               "application/json": {
                 "schema": {
@@ -35,7 +109,9 @@
                         "favoriteCount": { "type": "string" },
                         "commentCount": { "type": "string" }
                       }
-                    }
+                    },
+                    "publishedAt": { "type": "string", "format": "date-time" },
+                    "thumbnails": { "type": "object" }
                   }
                 },
                 "example": {
@@ -49,12 +125,479 @@
                     "likeCount": "0",
                     "favoriteCount": "0",
                     "commentCount": "0"
+                  },
+                  "publishedAt": "2025-04-20T05:40:43Z",
+                  "thumbnails": {
+                    "default": {
+                      "url": "https://i.ytimg.com/vi/ycYh3eL4NF0/default.jpg",
+                      "width": 120,
+                      "height": 90
+                    }
                   }
                 }
               }
             }
           },
           "500": { "description": "Failed to fetch video data" }
+        }
+      }
+    },
+    "/video/update": {
+      "patch": {
+        "summary": "Update video title and description",
+        "description": "Updates the title and/or description of the YouTube video",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Video updated successfully"
+          },
+          "400": {
+            "description": "Title or description is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Failed to update video"
+          }
+        }
+      }
+    },
+    "/video/rating": {
+      "get": {
+        "summary": "Get current video rating",
+        "description": "Get the current user's rating (like/dislike/none) for the video",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current video rating",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rating": { 
+                      "type": "string", 
+                      "enum": ["like", "dislike", "none", "unspecified"] 
+                    }
+                  }
+                },
+                "example": {
+                  "rating": "like"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Failed to get video rating"
+          }
+        }
+      }
+    },
+    "/video/rate": {
+      "post": {
+        "summary": "Rate a video",
+        "description": "Set a rating (like/dislike/none) for the video",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rating": { 
+                    "type": "string", 
+                    "enum": ["like", "dislike", "none"],
+                    "description": "Rating to apply to the video"
+                  }
+                },
+                "required": ["rating"]
+              },
+              "example": {
+                "rating": "like"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Video rated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "rating": { 
+                      "type": "string",
+                      "enum": ["like", "dislike", "none"]
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "rating": "like"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Valid rating is required (like, dislike, or none)"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Failed to rate video"
+          }
+        }
+      }
+    },
+    "/comments": {
+      "get": {
+        "summary": "Get video comments",
+        "description": "Get all comments for the hardcoded YouTube video",
+        "responses": {
+          "200": {
+            "description": "List of comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "commentId": { "type": "string" },
+                      "text": { "type": "string" },
+                      "authorDisplayName": { "type": "string" },
+                      "authorProfileImageUrl": { "type": "string" },
+                      "likeCount": { "type": "string" },
+                      "publishedAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" },
+                      "replies": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "text": { "type": "string" },
+                            "authorDisplayName": { "type": "string" },
+                            "authorProfileImageUrl": { "type": "string" },
+                            "likeCount": { "type": "string" },
+                            "publishedAt": { "type": "string", "format": "date-time" },
+                            "updatedAt": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch video comments"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a comment",
+        "description": "Add a new comment to the video",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": { "type": "string" }
+                },
+                "required": ["text"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment added successfully"
+          },
+          "400": {
+            "description": "Comment text is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Failed to add comment"
+          }
+        }
+      }
+    },
+    "/comments/reply": {
+      "post": {
+        "summary": "Reply to a comment",
+        "description": "Add a reply to an existing comment",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "commentId": { "type": "string" },
+                  "text": { "type": "string" }
+                },
+                "required": ["commentId", "text"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reply added successfully"
+          },
+          "400": {
+            "description": "Comment ID and text are required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Failed to reply to comment"
+          }
+        }
+      }
+    },
+    "/comments/{commentId}": {
+      "delete": {
+        "summary": "Delete a comment",
+        "description": "Delete a comment from the video",
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment deleted successfully"
+          },
+          "400": {
+            "description": "Comment ID is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Failed to delete comment"
+          }
+        }
+      }
+    },
+    "/notes/{videoId}": {
+      "get": {
+        "summary": "Get notes for a video",
+        "description": "Get all notes for the specified video",
+        "parameters": [
+          {
+            "name": "videoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of notes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "userId": { "type": "string" },
+                      "videoId": { "type": "string" },
+                      "content": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Error fetching notes"
+          }
+        }
+      }
+    },
+    "/notes": {
+      "post": {
+        "summary": "Add a note",
+        "description": "Add a new note for a video",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "videoId": { "type": "string" },
+                  "content": { "type": "string" }
+                },
+                "required": ["videoId", "content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Note created successfully"
+          },
+          "400": {
+            "description": "VideoId and content are required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "500": {
+            "description": "Error creating note"
+          }
+        }
+      }
+    },
+    "/notes/{id}": {
+      "patch": {
+        "summary": "Update a note",
+        "description": "Update the content of an existing note",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": { "type": "string" }
+                },
+                "required": ["content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Note updated successfully"
+          },
+          "400": {
+            "description": "Content is required"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Note not found or unauthorized"
+          },
+          "500": {
+            "description": "Error updating note"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a note",
+        "description": "Delete an existing note",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Note deleted successfully"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Note not found or unauthorized"
+          },
+          "500": {
+            "description": "Error deleting note"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check if the API is running",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "time": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
