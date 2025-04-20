@@ -1,0 +1,62 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "YouTube Video API",
+    "version": "1.0.0",
+    "description": "API to fetch and filter YouTube video metadata and statistics for a specific hardcoded video."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "paths": {
+    "/video": {
+      "get": {
+        "summary": "Get metadata and statistics for a specific YouTube video (hardcoded)",
+        "responses": {
+          "200": {
+            "description": "Filtered video information for the hardcoded video",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "channelId": { "type": "string" },
+                    "title": { "type": "string" },
+                    "description": { "type": "string" },
+                    "channelTitle": { "type": "string" },
+                    "statistics": {
+                      "type": "object",
+                      "properties": {
+                        "viewCount": { "type": "string" },
+                        "likeCount": { "type": "string" },
+                        "favoriteCount": { "type": "string" },
+                        "commentCount": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "id": "ycYh3eL4NF0",
+                  "channelId": "UCqrjCj98RsyHoBrxqUZu1eg",
+                  "title": "Mumma eat healthy",
+                  "description": "its necessary for development of child",
+                  "channelTitle": "devwithsmile",
+                  "statistics": {
+                    "viewCount": "0",
+                    "likeCount": "0",
+                    "favoriteCount": "0",
+                    "commentCount": "0"
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Failed to fetch video data" }
+        }
+      }
+    }
+  }
+}
